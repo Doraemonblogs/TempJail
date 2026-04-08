@@ -15,6 +15,47 @@ Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-vid
 
 ![Pipeline](src/pipeline.png)
 
+## Visualization
+
+Representative examples from the paper are shown below.
+
+![Visualization](src/visualization.png)
+
+### Video Results
+
+The following videos are arranged in a `2 x 2` grid with a consistent display size for easier side-by-side comparison.
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%">
+      <strong>Veo</strong><br>
+      <video src="src/Veo.mp4" controls muted playsinline preload="metadata" width="320" height="320" style="object-fit: contain; background: #000000;">
+        Your browser does not support the video tag.
+      </video>
+    </td>
+    <td align="center" width="50%">
+      <strong>Seedance</strong><br>
+      <video src="src/Seedance.mp4" controls muted playsinline preload="metadata" width="320" height="320" style="object-fit: contain; background: #000000;">
+        Your browser does not support the video tag.
+      </video>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Pixverse</strong><br>
+      <video src="src/Pixverse.mp4" controls muted playsinline preload="metadata" width="320" height="320" style="object-fit: contain; background: #000000;">
+        Your browser does not support the video tag.
+      </video>
+    </td>
+    <td align="center" width="50%">
+      <strong>Kling</strong><br>
+      <video src="src/Kling.mp4" controls muted playsinline preload="metadata" width="320" height="320" style="object-fit: contain; background: #000000;">
+        Your browser does not support the video tag.
+      </video>
+    </td>
+  </tr>
+</table>
+
 ## Repository Layout
 
 ```text
@@ -136,12 +177,6 @@ For PowerShell, a single-line version avoids line-continuation issues:
 ```powershell
 python generate.py device=cuda:0 data.cle_data_path="C:\path\to\data\clean" data.tgt_data_path="C:\path\to\data\target" data.output="outputs\tempjail" data.num_samples=100
 ```
-
-## Visualization
-
-Representative examples from the paper are shown below.
-
-![Visualization](src/visualization.png)
 
 ## Note
 The code is still being refactored and cleaned. Some modules or configurations may be updated after paper acceptance.
