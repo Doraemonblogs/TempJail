@@ -1,8 +1,12 @@
+<div style="font-size:16px; line-height:1.6;">
+
 # TEMPJAIL
 
 Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-video (I2V) systems. 
 
-![TEMPJAIL overview](src/intro.png)
+<p align="center">
+  <img src="https://anonymous.4open.science/r/TempJail/src/intro.png" alt="intro" width="75%">
+</p>
 
 ## Overview
 
@@ -13,15 +17,11 @@ Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-vid
 - `surrogates/` provides an ensemble of pretrained CLIP-like image encoders used as transfer-oriented feature extractors.
 - `evaluator/evaluator.py` evaluates adversarial images with caption generation (`BLIP2`) and text similarity (`CLIPScore`).
 
-![Pipeline](src/pipeline.png)
+<p align="center">
+  <img src="https://anonymous.4open.science/r/TempJail/src/pipeline.png" alt="pipeline" width="75%">
+</p>
 
-## Visualization
-
-Representative examples from the paper are shown below.
-
-![Visualization](src/visualization.png)
-
-### Video Results
+## Video Results
 
 The following videos are arranged in a `2 x 2` grid with a consistent display size for easier side-by-side comparison.
 
@@ -39,8 +39,6 @@ The following videos are arranged in a `2 x 2` grid with a consistent display si
         Your browser does not support the video tag.
       </video>
     </td>
-  </tr>
-  <tr>
     <td align="center" width="50%">
       <strong>Pixverse</strong><br>
       <video src="src/Pixverse.mp4" controls muted playsinline preload="metadata" width="320" height="320" style="object-fit: contain; background: #000000;">
@@ -172,11 +170,15 @@ python generate.py \
   data.num_samples=100
 ```
 
-For PowerShell, a single-line version avoids line-continuation issues:
+## Visualization
 
-```powershell
-python generate.py device=cuda:0 data.cle_data_path="C:\path\to\data\clean" data.tgt_data_path="C:\path\to\data\target" data.output="outputs\tempjail" data.num_samples=100
-```
+Representative examples from the paper are shown below.
+
+<p align="center">
+  <img src="https://anonymous.4open.science/r/TempJail/src/visualization.png" alt="visualization" width="75%">
+</p>
 
 ## Note
 The code is still being refactored and cleaned. Some modules or configurations may be updated after paper acceptance.
+
+</div>
