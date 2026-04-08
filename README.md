@@ -1,6 +1,6 @@
 # TEMPJAIL
 
-Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-video (I2V) systems. The repository optimizes an adversarial source image so that downstream I2V models preserve subject consistency and temporal coherence while drifting toward malicious temporal content.
+Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-video (I2V) systems. 
 
 ![TEMPJAIL overview](src/intro.png)
 
@@ -12,8 +12,6 @@ Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-vid
 - `attacks/tempjail.py` implements the attack with partial DDPM inversion, latent updates, and candidate-crop selection.
 - `surrogates/` provides an ensemble of pretrained CLIP-like image encoders used as transfer-oriented feature extractors.
 - `evaluator/evaluator.py` evaluates adversarial images with caption generation (`BLIP2`) and text similarity (`CLIPScore`).
-
-The paper-level pipeline includes malicious caption construction, concept extraction, and downstream I2V generation. In the current repository, the target reference images and captions are assumed to be prepared in advance.
 
 ![Pipeline](src/pipeline.png)
 
@@ -41,12 +39,6 @@ At a high level, the current codebase does the following:
 3. Partially invert to timestep `t*`, then optimize the latent with surrogate feature alignment during the reverse process.
 4. Sample multiple random crops from the decoded candidate image and keep the crop with the strongest similarity to the target reference under an ensemble of pretrained encoders.
 5. Decode the final latent into an adversarial image and evaluate whether its caption is semantically closer to the target malicious caption.
-
-The default surrogate ensemble is:
-
-- `openai/clip-vit-base-patch16`
-- `openai/clip-vit-base-patch32`
-- `laion/CLIP-ViT-g-14-laion2B-s12B-b42K`
 
 ## Environment
 
@@ -83,14 +75,6 @@ The repository includes a compressed asset bundle:
 ```bash
 tar -xzf dataset.tar.gz
 ```
-
-The archive currently contains raw benchmark assets such as:
-
-- `dataset/naked_imgs/`
-- `dataset/img_clothes_masks/`
-- `dataset/prompts/Nudity_prompt.csv`
-- `dataset/prompts/NoNudity_prompt.csv`
-- `dataset/prompts/Violence_30.csv`
 
 Important: the raw archive is **not** directly consumable by `generate.py`.
 
@@ -153,47 +137,11 @@ For PowerShell, a single-line version avoids line-continuation issues:
 python generate.py device=cuda:0 data.cle_data_path="C:\path\to\data\clean" data.tgt_data_path="C:\path\to\data\target" data.output="outputs\tempjail" data.num_samples=100
 ```
 
-## Key Configuration Fields
-
-- `attack_class`: attack name registered in `attacks/__init__.py`
-- `agd.iterations`: number of outer attack iterations
-- `agd.scale`: latent update step size
-- `agd.clip_eps`: gradient clipping threshold
-- `agd.t_star`: partial inversion ratio used to choose the starting diffusion timestep
-- `agd.N_cand`: number of random candidate crops per denoising step
-- `agd.s_range`: scale range used when sampling random crops
-- `model.backbone`: surrogate backbone list
-- `model.ensemble`: whether to average across multiple surrogate encoders
-- `evaluate.open_source_models`: captioning/evaluation backbones, default `blip2`
-- `evaluate.metrics`: metric list, default `clip_score`
-- `specific`: optional list of sample indices to run
-
-## Outputs
-
-For each run, the script computes a hash from the resolved Hydra config and saves outputs under:
-
-- `<data.output>/all/<config_hash>/img/<class_name>/`
-- `<data.output>/all/<config_hash>/pert/<class_name>/`
-- `<data.output>/latest_<wandb.name>/img/<class_name>/`
-- `<data.output>/latest_<wandb.name>/pert/<class_name>/`
-
-The evaluator also reports:
-
-- perturbation magnitudes: `L_1`, `L_2`, `L_inf`
-- generated captions from enabled evaluation models
-- text similarity scores between generated captions and target captions
-
-## Current Scope and Caveats
-
-- The repository focuses on adversarial image optimization, not full downstream video synthesis.
-- The raw dataset archive and the runtime folder structure are different; some manual preprocessing is still required.
-- `commercial_models` is present in the config but is not wired into the current evaluator.
-- `minigpt4`, `unidiffuser`, and `llava` are placeholders or partial stubs in the evaluator.
-- If `./object/img_dix.npy` is missing, the attack falls back to using the whole image instead of a precomputed saliency box.
-- Default evaluation is heavy: `Stable Diffusion 2.1 + BLIP2 + multiple CLIP encoders` requires substantial GPU memory.
-
 ## Visualization
 
 Representative examples from the paper are shown below.
 
 ![Visualization](src/visualization.png)
+
+## Note
+The code is still being refactored and cleaned. Some modules or configurations may be updated after paper acceptance.
