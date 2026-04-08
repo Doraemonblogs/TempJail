@@ -1,1 +1,199 @@
-ÿþ
+# TEMPJAIL
+
+Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-video (I2V) systems. The repository optimizes an adversarial source image so that downstream I2V models preserve subject consistency and temporal coherence while drifting toward malicious temporal content.
+
+![TEMPJAIL overview](src/intro.png)
+
+## Overview
+
+`TEMPJAIL` combines diffusion latent optimization and surrogate visual alignment:
+
+- `generate.py` is the main entry point built on Hydra configs.
+- `attacks/tempjail.py` implements the attack with partial DDPM inversion, latent updates, and candidate-crop selection.
+- `surrogates/` provides an ensemble of pretrained CLIP-like image encoders used as transfer-oriented feature extractors.
+- `evaluator/evaluator.py` evaluates adversarial images with caption generation (`BLIP2`) and text similarity (`CLIPScore`).
+
+The paper-level pipeline includes malicious caption construction, concept extraction, and downstream I2V generation. In the current repository, the target reference images and captions are assumed to be prepared in advance.
+
+![Pipeline](src/pipeline.png)
+
+## Repository Layout
+
+```text
+TempJail/
+|-- attacks/               # Attack implementations
+|-- config/                # Hydra configs
+|-- evaluator/             # Caption-based evaluation
+|-- models/                # Bundled CLIP implementation and helpers
+|-- src/                   # Figures used in the paper/README
+|-- surrogates/            # Pretrained surrogate feature extractors
+|-- dataset.tar.gz         # Raw benchmark assets shipped with the repo
+|-- generate.py            # Main script
+`-- utils.py               # Shared utilities
+```
+
+## Method Summary
+
+At a high level, the current codebase does the following:
+
+1. Load a clean source image and a target reference image.
+2. Encode the source image into the latent space of `stable-diffusion-2-1`.
+3. Partially invert to timestep `t*`, then optimize the latent with surrogate feature alignment during the reverse process.
+4. Sample multiple random crops from the decoded candidate image and keep the crop with the strongest similarity to the target reference under an ensemble of pretrained encoders.
+5. Decode the final latent into an adversarial image and evaluate whether its caption is semantically closer to the target malicious caption.
+
+The default surrogate ensemble is:
+
+- `openai/clip-vit-base-patch16`
+- `openai/clip-vit-base-patch32`
+- `laion/CLIP-ViT-g-14-laion2B-s12B-b42K`
+
+## Environment
+
+A practical setup is Python `3.10` with CUDA-enabled PyTorch. The code downloads several large models from Hugging Face on first run, including:
+
+- `AI-ModelScope/stable-diffusion-2-1`
+- `Salesforce/blip2-opt-2.7b`
+- CLIP backbones used by the surrogate ensemble and evaluator
+
+Install a minimal environment with:
+
+```bash
+pip install torch torchvision
+pip install diffusers transformers hydra-core omegaconf pytorch-lightning
+pip install wandb tqdm pillow numpy pyyaml accelerate safetensors sentencepiece
+```
+
+If you do not want online experiment logging, run in offline mode:
+
+```bash
+export WANDB_MODE=offline
+```
+
+On PowerShell:
+
+```powershell
+$env:WANDB_MODE="offline"
+```
+
+## Data Preparation
+
+The repository includes a compressed asset bundle:
+
+```bash
+tar -xzf dataset.tar.gz
+```
+
+The archive currently contains raw benchmark assets such as:
+
+- `dataset/naked_imgs/`
+- `dataset/img_clothes_masks/`
+- `dataset/prompts/Nudity_prompt.csv`
+- `dataset/prompts/NoNudity_prompt.csv`
+- `dataset/prompts/Violence_30.csv`
+
+Important: the raw archive is **not** directly consumable by `generate.py`.
+
+The main script uses `torchvision.datasets.ImageFolder`, so both source and target inputs must be reorganized into `ImageFolder`-style directories. In addition, the target directory is expected to contain `caption.json` and `keywords.json` inside subfolder `1/`.
+
+An example layout that matches the current code is:
+
+```text
+data/
+|-- clean/
+|   `-- 0/
+|       |-- 000.png
+|       |-- 001.png
+|       `-- ...
+`-- target/
+    `-- 1/
+        |-- 000.png
+        |-- 001.png
+        |-- caption.json
+        |-- keywords.json
+        `-- ...
+```
+
+The current script expects:
+
+- `data.cle_data_path` -> path to `data/clean`
+- `data.tgt_data_path` -> path to `data/target`
+- `caption.json` -> a list where each item contains `caption`, and the code reads `caption_list[i % 100]["caption"][0]`
+- `keywords.json` -> loaded by the script but not used in the current attack/evaluation loop
+
+A minimal `caption.json` example is:
+
+```json
+[
+  { "caption": ["target malicious caption 0"] },
+  { "caption": ["target malicious caption 1"] }
+]
+```
+
+Target reference images are assumed to be prepared beforehand. The text-to-image stage shown in the paper figure is not implemented as a standalone preprocessing script in this repository.
+
+## Running TEMPJAIL
+
+The default config is defined in `config/tempjail.yaml` and inherits base settings from `config/base.yaml`.
+
+Run the attack with Hydra overrides:
+
+```bash
+python generate.py \
+  device=cuda:0 \
+  data.cle_data_path=/path/to/data/clean \
+  data.tgt_data_path=/path/to/data/target \
+  data.output=outputs/tempjail \
+  data.num_samples=100
+```
+
+For PowerShell, a single-line version avoids line-continuation issues:
+
+```powershell
+python generate.py device=cuda:0 data.cle_data_path="C:\path\to\data\clean" data.tgt_data_path="C:\path\to\data\target" data.output="outputs\tempjail" data.num_samples=100
+```
+
+## Key Configuration Fields
+
+- `attack_class`: attack name registered in `attacks/__init__.py`
+- `agd.iterations`: number of outer attack iterations
+- `agd.scale`: latent update step size
+- `agd.clip_eps`: gradient clipping threshold
+- `agd.t_star`: partial inversion ratio used to choose the starting diffusion timestep
+- `agd.N_cand`: number of random candidate crops per denoising step
+- `agd.s_range`: scale range used when sampling random crops
+- `model.backbone`: surrogate backbone list
+- `model.ensemble`: whether to average across multiple surrogate encoders
+- `evaluate.open_source_models`: captioning/evaluation backbones, default `blip2`
+- `evaluate.metrics`: metric list, default `clip_score`
+- `specific`: optional list of sample indices to run
+
+## Outputs
+
+For each run, the script computes a hash from the resolved Hydra config and saves outputs under:
+
+- `<data.output>/all/<config_hash>/img/<class_name>/`
+- `<data.output>/all/<config_hash>/pert/<class_name>/`
+- `<data.output>/latest_<wandb.name>/img/<class_name>/`
+- `<data.output>/latest_<wandb.name>/pert/<class_name>/`
+
+The evaluator also reports:
+
+- perturbation magnitudes: `L_1`, `L_2`, `L_inf`
+- generated captions from enabled evaluation models
+- text similarity scores between generated captions and target captions
+
+## Current Scope and Caveats
+
+- The repository focuses on adversarial image optimization, not full downstream video synthesis.
+- The raw dataset archive and the runtime folder structure are different; some manual preprocessing is still required.
+- `commercial_models` is present in the config but is not wired into the current evaluator.
+- `minigpt4`, `unidiffuser`, and `llava` are placeholders or partial stubs in the evaluator.
+- If `./object/img_dix.npy` is missing, the attack falls back to using the whole image instead of a precomputed saliency box.
+- Default evaluation is heavy: `Stable Diffusion 2.1 + BLIP2 + multiple CLIP encoders` requires substantial GPU memory.
+
+## Visualization
+
+Representative examples from the paper are shown below.
+
+![Visualization](src/visualization.png)
