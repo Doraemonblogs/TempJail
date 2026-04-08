@@ -1,14 +1,10 @@
 <div style="font-size:16px; line-height:1.6;">
 
-# TEMPJAIL
-
-Research code for `TEMPJAIL`, a temporal jailbreak attack targeting image-to-video (I2V) systems. 
+## Overview
 
 <p align="center">
   <img src="https://anonymous.4open.science/r/TempJail/src/intro.png" alt="intro" width="75%">
 </p>
-
-## Overview
 
 This paper introduces TempJail, a novel temporal jailbreak attack framework targeting image-to-video (I2V) generative models. We uncover a unique temporal vulnerability in I2V systems: harmful semantics may not appear explicitly within a single frame, but instead emerge progressively through semantic composition over time.
 
